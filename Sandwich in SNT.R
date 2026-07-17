@@ -63,7 +63,7 @@ dat_long <- rbind(dat_k1, dat_k2)
 
 # Save dataset to be used as df
 df <- dat_k1
-
+#df <- dat_k2
 
 
 #---------------------------------------#
@@ -79,7 +79,8 @@ X <- with(df, model.matrix(~ W))
 # Estimate logistic model
 psmodel <- glm(A ~ X - 1, data = df, binomial(link="logit"))
 
-# Calculate weights
+
+## Calculate weights
 df_wts <- df %>%
   mutate(ps = predict(psmodel, ., type="response"),
          ipw = A/ps + (1-A)/(1-ps))
@@ -192,7 +193,8 @@ results
 
 ################################-
 #
-# Sandwich with pooled trials ----
+# Sandwich with long dataset ----
+# results still stratified by trial
 #
 ################################-
 
@@ -207,21 +209,21 @@ df <- dat_long
 
 ## Propensity score model
 
-# Save model matrix (alter this model for pooling, e.g., W + factor(S))
-X <- with(df, model.matrix(~ W * factor(S)))
+# Save model matrix 
+X <- with(df, model.matrix(~ W *factor(S)))
 
 # Estimate logistic model
 psmodel <- glm(A ~ X - 1, data = df, binomial(link="logit"))
 
-# Calculate weights
+
+## Calculate weights
 df_wts <- df %>%
   mutate(ps = predict(psmodel, ., type="response"),
          ipw = A/ps + (1-A)/(1-ps))
 
 
-
-## Risk differences
-rs <- df_wts |>
+## Risk difference
+rd <- df_wts |>
   group_by(S) |>
   summarise(
     r1 = sum(ipw*Y*A) / sum(ipw*A),
@@ -233,7 +235,7 @@ rs <- df_wts |>
 
 
 ## Store point estimates
-ptests <- c(rs$rd,
+ptests <- c(rd$rd,
             psmodel$coefficients)
 
 
@@ -348,4 +350,140 @@ results
 
 
 
+################################-
+#
+# Sandwich with pooling ----
+#
+################################-
+
+# Save dataset to be used as df
+df <- dat_long
+
+
+#---------------------------------------#
+### Step 1 - Point estimates ----
+#---------------------------------------#
+
+
+## Propensity score model
+
+# Save model matrix (dropped interaction term)
+X <- with(df, model.matrix(~ W + factor(S)))
+
+# Estimate logistic model
+psmodel <- glm(A ~ X - 1, data = df, binomial(link="logit"))
+
+
+## Calculate weights
+df_wts <- df %>%
+  mutate(ps = predict(psmodel, ., type="response"),
+         ipw = A/ps + (1-A)/(1-ps))
+
+
+## Risk difference
+rd <- df_wts |>
+  summarise(
+    r1 = sum(ipw*Y*A) / sum(ipw*A),
+    r0 = sum(ipw*Y*(1-A)) / sum(ipw*(1-A)),
+    rd = r1 - r0
+  )
+
+## Store point estimates
+ptests <- c(rd$rd,
+            psmodel$coefficients)
+
+
+
+#---------------------------------------#
+### Step 2 - Data setup for sandwich ----
+#---------------------------------------#
+
+
+## Create list of data elements 
+dfmat <- with(df,
+              list(# same as above
+                A = A, # trt vector,
+                Y = Y, # outcome vector,
+                X = X, # model matrix for ps model
+                nsize = sum(S==1), # number of unique individuals
+                
+                # new elements
+                S = S, # trial indicator
+                i = i, # unique id for subjects
+                K = length(unique(S)) # number of trials
+              )) 
+
+
+
+#---------------------------------------#
+### Step 3 - Stack of ee's ----
+#---------------------------------------#
+
+
+## Create function
+eefx_sntpool <- function(theta, dfmat){ # Inputs: vector of parameters, list of data elements
+  
+  # Extract alpha parameters from theta
+  alpha <- theta[2:length(theta)]
+  
+  
+  ## For ps model - same as previous
+  pi <- plogis(drop(dfmat$X %*% alpha)) # propensity score
+  long_ee_ps <- as.vector(dfmat$A - pi) * dfmat$X 
+  
+  # *Key step*: long_ee_ps is too long, must sum within person -> n by length(alpha)
+  ee_ps <- rowsum(long_ee_ps, group = dfmat$i)  
+  
+  
+  ## For risk difference
+  long_ee_rd <- dfmat$A*dfmat$Y/pi - (1-dfmat$A)*dfmat$Y/(1-pi) - theta[1] 
+  
+  # *Key step*: long_ee_rd is too long, must sum within person -> n by 1
+  ee_rd <- rowsum(long_ee_rd, group = dfmat$i)  
+
+
+  ## Output: n by p matrix
+  return(cbind(ee_rd,
+               ee_ps))
+}
+
+
+#---------------------------------------#
+### Step 4 - Sandwich estimator ----
+#---------------------------------------#
+
+
+# Save the name of the ee fx created in previous step
+eefx <- eefx_sntpool
+
+
+# Function for summing columns of ee fx  - already defined above
+#see sumcolee 
+
+
+# Sandwich
+residuals <- eefx(ptests, dfmat) # residuals at the point estimates
+meat <- crossprod(residuals) / dfmat$nsize # meat matrix
+bread <- -numDeriv::jacobian(sumcolee, 
+                             ptests, 
+                             eefx = eefx, 
+                             dfmat = dfmat) / dfmat$nsize # bread matrix
+bread_inv <- solve(bread) # inverse of bread matrix
+sandwich <- (bread_inv %*% meat %*% t(bread_inv)) / dfmat$nsize #putting it all together
+ses <- sqrt(diag(sandwich))
+
+
+
+#---------------------------------------#
+### Results ----
+#---------------------------------------#
+
+results <- tibble(
+  rd = ptests,
+  se = ses,
+  lcl = rd - 1.96*se,
+  ucl = rd + 1.96*se
+)
+
+results
 
