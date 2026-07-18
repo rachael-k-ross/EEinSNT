@@ -32,7 +32,7 @@ dat_k1 <- tibble(
   Y1 = rbinom(n, 1, 0.3 + 0.1*W - 0.1*1),
   Y = A*Y1 + (1-A)*Y0)
 
-# Simulate 2nd emulated trial (k=2_)
+# Simulate 2nd emulated trial (k=2)
 
 n_2 <- n - sum(dat_k1$A)
 
@@ -87,16 +87,11 @@ df_wts <- df %>%
 
 
 ## Risk difference
-rd <- df_wts |>
-  summarise(
-    r1 = sum(ipw*Y*A) / sum(ipw*A),
-    r0 = sum(ipw*Y*(1-A)) / sum(ipw*(1-A)),
-    rd = r1 - r0
-  )
-
+rd <- with(df_wts,
+           mean(ipw*Y*A - ipw*Y*(1 - A)))
 
 ## Store point estimates
-ptests <- c(rd$rd,
+ptests <- c(rd,
             psmodel$coefficients)
 
 
@@ -226,12 +221,13 @@ df_wts <- df %>%
 rd <- df_wts |>
   group_by(S) |>
   summarise(
-    r1 = sum(ipw*Y*A) / sum(ipw*A),
-    r0 = sum(ipw*Y*(1-A)) / sum(ipw*(1-A)),
+    r1 = mean(ipw * Y * A),
+    r0 = mean(ipw * Y * (1 - A)),
     rd = r1 - r0,
     .groups = "drop"
-  ) %>%
+  ) |>
   arrange(S)
+
 
 
 ## Store point estimates
@@ -381,15 +377,11 @@ df_wts <- df %>%
 
 
 ## Risk difference
-rd <- df_wts |>
-  summarise(
-    r1 = sum(ipw*Y*A) / sum(ipw*A),
-    r0 = sum(ipw*Y*(1-A)) / sum(ipw*(1-A)),
-    rd = r1 - r0
-  )
+rd <- with(df_wts,
+           mean(ipw*Y*A - ipw*Y*(1 - A)))
 
 ## Store point estimates
-ptests <- c(rd$rd,
+ptests <- c(rd,
             psmodel$coefficients)
 
 
@@ -406,11 +398,7 @@ dfmat <- with(df,
                 Y = Y, # outcome vector,
                 X = X, # model matrix for ps model
                 nsize = sum(S==1), # number of unique individuals
-                
-                # new elements
-                S = S, # trial indicator
-                i = i, # unique id for subjects
-                K = length(unique(S)) # number of trials
+                i = i # unique id for subjects
               )) 
 
 
