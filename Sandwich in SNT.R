@@ -14,39 +14,83 @@ library(tidyverse)
 
 ########################-
 #
-# Simulate data ----
+# Data ----
 #
 ########################-
 
-set.seed(7)
-n <- 100000
+# set.seed(7)
+# n <- 100000
+# 
+# # Simulate baseline emulated trial (k=1)
+# 
+# dat_k1 <- tibble(
+#   i = seq(1,n),
+#   S = 1,
+#   W = rbinom(n, 1, 0.2),
+#   A = rbinom(n, 1, 0.1 + 0.1*W),
+#   Y0 = rbinom(n, 1, 0.3 + 0.1*W - 0.1*0),
+#   Y1 = rbinom(n, 1, 0.3 + 0.1*W - 0.1*1),
+#   Y = A*Y1 + (1-A)*Y0)
+# 
+# # Simulate 2nd emulated trial (k=2)
+# 
+# n_2 <- n - sum(dat_k1$A)
+# 
+# dat_k2 <- dat_k1 |>
+#   filter(A == 0) |> # restrict to those assigned A=1 in first trial
+#   select(i,W) |>
+#   rename(priorW=W) |>
+#   mutate(S = 2, 
+#          W = rbinom(n_2, 1, 0.1 + 0.4*priorW),
+#          A = rbinom(n_2, 1, 0.1 + 0.1*W),
+#          Y0 = rbinom(n_2, 1, 0.3 + 0.1*W - 0.1*0),
+#          Y1 = rbinom(n_2, 1, 0.3 + 0.1*W - 0.1*1),
+#          Y = A*Y1 + (1-A)*Y0) |>
+#   select(-priorW)
 
-# Simulate baseline emulated trial (k=1)
 
-dat_k1 <- tibble(
-  i = seq(1,n),
-  S = 1,
-  W = rbinom(n, 1, 0.2),
-  A = rbinom(n, 1, 0.1 + 0.1*W),
-  Y0 = rbinom(n, 1, 0.3 + 0.1*W - 0.1*0),
-  Y1 = rbinom(n, 1, 0.3 + 0.1*W - 0.1*1),
-  Y = A*Y1 + (1-A)*Y0)
+# Trial 1
+dat_k1 <- tribble(
+  ~i,  ~W, ~A, ~Y,
+  1,   1,  1,  1,
+  2,   0,  0,  0,
+  3,   1,  0,  1,
+  4,   0,  0,  0,
+  5,   0,  1,  1,
+  6,   1,  1,  1,
+  7,   0,  0,  0,
+  8,   1,  0,  1,
+  9,   1,  1,  1,
+  10,   0,  0,  0,
+  11,   0,  0,  0,
+  12,   1,  1,  1,
+  13,   0,  0,  0,
+  14,   1,  0,  1,
+  15,   0,  0,  0,
+  16,   1,  1,  1,
+  17,   0,  0,  0,
+  18,   0,  0,  1,
+  19,   1,  1,  1,
+  20,   1,  0,  0
+) |> mutate(S = 1)
 
-# Simulate 2nd emulated trial (k=2)
-
-n_2 <- n - sum(dat_k1$A)
-
-dat_k2 <- dat_k1 |>
-  filter(A == 0) |> # restrict to those assigned A=1 in first trial
-  select(i,W) |>
-  rename(priorW=W) |>
-  mutate(S = 2, 
-         W = rbinom(n_2, 1, 0.1 + 0.4*priorW),
-         A = rbinom(n_2, 1, 0.1 + 0.1*W),
-         Y0 = rbinom(n_2, 1, 0.3 + 0.1*W - 0.1*0),
-         Y1 = rbinom(n_2, 1, 0.3 + 0.1*W - 0.1*1),
-         Y = A*Y1 + (1-A)*Y0) |>
-  select(-priorW)
+# Trial 2: nested among i's with A=0 in trial 1 
+dat_k2 <- tribble(
+  ~i,  ~W, ~A, ~Y,
+  2,   0,  0,  1,
+  3,   1,  1,  1,
+  4,   0,  0,  0,
+  7,   1,  0,  1,
+  8,   0,  1,  1,
+  10,   0,  0,  0,
+  11,   1,  0,  0,
+  13,   0,  0,  0,
+  14,   1,  1,  1,
+  15,   0,  0,  1,
+  17,   1,  1,  1,
+  18,   0,  0,  0,
+  20,   1,  0,  0
+) |> mutate(S = 2)
   
 
 # Create long dataset

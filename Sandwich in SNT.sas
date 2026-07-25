@@ -12,35 +12,83 @@
 
 /*##################################################-
 #
-# Simulate data
+# Data
 #
 ##################################################-*/
 
-/* dat_k1: baseline emulated trial (k=1) */
+/*/* dat_k1: baseline emulated trial (k=1) */*/
+/*data dat_k1;*/
+/*    call streaminit(7);*/
+/*    do i = 1 to 100000;*/
+/*        S  = 1;*/
+/*        W  = rand('BERNOULLI', 0.2);*/
+/*        A  = rand('BERNOULLI', 0.1 + 0.1*W);*/
+/*        Y0 = rand('BERNOULLI', 0.3 + 0.1*W);*/
+/*        Y1 = rand('BERNOULLI', 0.3 + 0.1*W - 0.1);*/
+/*        Y  = A*Y1 + (1-A)*Y0;*/
+/*        output;*/
+/*    end;*/
+/*run;*/
+/**/
+/*/* dat_k2: 2nd emulated trial, nested among A=0 from k1 */*/
+/*data dat_k2;*/
+/*    call streaminit(8);*/
+/*    set dat_k1(where=(A=0) rename=(W=priorW));*/
+/*    S  = 2;*/
+/*    W  = rand('BERNOULLI', 0.1 + 0.4*priorW);*/
+/*    A  = rand('BERNOULLI', 0.1 + 0.1*W);*/
+/*    Y0 = rand('BERNOULLI', 0.3 + 0.1*W);*/
+/*    Y1 = rand('BERNOULLI', 0.3 + 0.1*W - 0.1);*/
+/*    Y  = A*Y1 + (1-A)*Y0;*/
+/*    drop priorW;*/
+/*run;*/
+;
+
 data dat_k1;
-    call streaminit(7);
-    do i = 1 to 100000;
-        S  = 1;
-        W  = rand('BERNOULLI', 0.2);
-        A  = rand('BERNOULLI', 0.1 + 0.1*W);
-        Y0 = rand('BERNOULLI', 0.3 + 0.1*W);
-        Y1 = rand('BERNOULLI', 0.3 + 0.1*W - 0.1);
-        Y  = A*Y1 + (1-A)*Y0;
-        output;
-    end;
+    input i W A Y;
+    S = 1;
+    datalines;
+1  1 1 1
+2  0 0 0
+3  1 0 1
+4  0 0 0
+5  0 1 1
+6  1 1 1
+7  0 0 0
+8  1 0 1
+9  1 1 1
+10 0 0 0
+11 0 0 0
+12 1 1 1
+13 0 0 0
+14 1 0 1
+15 0 0 0
+16 1 1 1
+17 0 0 0
+18 0 0 1
+19 1 1 1
+20 1 0 0
+;
 run;
 
-/* dat_k2: 2nd emulated trial, nested among A=0 from k1 */
 data dat_k2;
-    call streaminit(8);
-    set dat_k1(where=(A=0) rename=(W=priorW));
-    S  = 2;
-    W  = rand('BERNOULLI', 0.1 + 0.4*priorW);
-    A  = rand('BERNOULLI', 0.1 + 0.1*W);
-    Y0 = rand('BERNOULLI', 0.3 + 0.1*W);
-    Y1 = rand('BERNOULLI', 0.3 + 0.1*W - 0.1);
-    Y  = A*Y1 + (1-A)*Y0;
-    drop priorW;
+    input i W A Y;
+    S = 2;
+    datalines;
+2  0 0 1
+3  1 1 1
+4  0 0 0
+7  1 0 1
+8  0 1 1
+10 0 0 0
+11 1 0 0
+13 0 0 0
+14 1 1 1
+15 0 0 1
+17 1 1 1
+18 0 0 0
+20 1 0 0
+;
 run;
 
 /* dat_long: stacked */
