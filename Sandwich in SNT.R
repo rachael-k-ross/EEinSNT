@@ -100,7 +100,7 @@ dat_long <- rbind(dat_k1, dat_k2)
 
 ################################-
 #
-# Sandwich with single trial ----
+# Single trial ----
 #
 ################################-
 
@@ -232,8 +232,7 @@ results
 
 ################################-
 #
-# Sandwich with long dataset ----
-# results still stratified by trial
+# Pool K risk differences
 #
 ################################-
 
@@ -261,7 +260,7 @@ df_wts <- df %>%
          ipw = A/ps + (1-A)/(1-ps))
 
 
-## Risk difference
+## Risk differences
 rd <- df_wts |>
   group_by(S) |>
   summarise(
@@ -272,10 +271,12 @@ rd <- df_wts |>
   ) |>
   arrange(S)
 
-
+## Pooled risk difference (pis_pool1)
+rd_pool <- mean(rd$rd)
 
 ## Store point estimates
 ptests <- c(rd$rd,
+            rd_pool,
             psmodel$coefficients)
 
 
@@ -309,9 +310,10 @@ dfmat <- with(df,
 ## Create function
 eefx_snt <- function(theta, dfmat){ # Inputs: vector of parameters, list of data elements
   
-  
-  # Extract alpha parameters from theta
-  alpha <- theta[(dfmat$K + 1):length(theta)]
+  # Extract parameters from theta
+  psi_k <- theta[1:dfmat$K]
+  psi_pool1 <- theta[3]
+  alpha <- theta[(dfmat$K + 2):length(theta)]
   
   
   ## For ps model 
@@ -323,11 +325,14 @@ eefx_snt <- function(theta, dfmat){ # Inputs: vector of parameters, list of data
 
   
   ## For risk differences
-  long_ee_rd <- dfmat$A*dfmat$Y/pi - (1-dfmat$A)*dfmat$Y/(1-pi) - theta[dfmat$S] 
+  long_ee_rd <- dfmat$A*dfmat$Y/pi - (1-dfmat$A)*dfmat$Y/(1-pi) - psi_k[dfmat$S] 
   
   # *Key step*: long_ee_rd is too long, must make wide -> n by K
   ee_rd <- matrix(0, nrow = dfmat$nsize, ncol = dfmat$K)
   ee_rd[cbind(dfmat$i, dfmat$S)] <- long_ee_rd
+  
+  ## Pooled risk difference
+  ee_rdpool <- sum(psi_k)/dfmat$K - psi_pool1
   
       # ## Alternative for ee_rd (less efficient but possibly more intuitive)
       # ee_rd <- matrix(0, nrow = dfmat$nsize, ncol = dfmat$K)
@@ -341,6 +346,7 @@ eefx_snt <- function(theta, dfmat){ # Inputs: vector of parameters, list of data
     
   ## Output: n by p matrix
   return(cbind(ee_rd,
+               ee_rdpool,
                ee_ps))
 }
 
@@ -392,7 +398,7 @@ results
 
 ################################-
 #
-# Sandwich with pooling ----
+# Single RD w/ long data ----
 #
 ################################-
 

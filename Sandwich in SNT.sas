@@ -99,7 +99,7 @@ run;
 
 /*##################################################-
 #
-# Sandwich with single trial
+# Single trial
 #
 ##################################################-*/
 
@@ -228,8 +228,7 @@ proc print data=out; run;
 
 /*##################################################-
 #
-# Sandwich with long dataset ----
-# results still stratified by trial
+# Pool K risk differences
 #
 ##################################################-*/
 
@@ -268,6 +267,12 @@ proc means data=ipw noprint nway;
 run;
 
 proc sort data=rd_out; by S; run;   /* ensures rd_vec is ordered trial 1..K */
+
+/* Pooled risk difference */
+proc means data=rd_out noprint;
+	var rd;
+	output out=rd_pool(keep=rd) mean=rd;
+run;
 
 
 /* Sort data for sandwich implementation */
@@ -311,14 +316,15 @@ proc iml;
     ### Step 3 - Stack of ee's ----
     #---------------------------------------*/
 
-	
+
     /* Estimating equation function: takes theta, returns n x p matrix */
 	start eefx_snt(theta) global(A_long, Y_long, X_long, S_long, i_long, n, K);
 
 		theta = colvec(theta);  /* Force to be column vector */
 
-	    rd_theta = theta[1:K];
-		alpha    = theta[(K+1):nrow(theta)];
+	    psi_k = theta[1:K];
+		psi_pool1 = theta[3];
+		alpha    = theta[(K+2):nrow(theta)]; 
 
 	    pi_long = 1/(1+exp(-(X_long*alpha)));
 
@@ -332,10 +338,13 @@ proc iml;
 	        r = loc(S_long = trial);
 	        p = i_long[r];
 	        ee_ps[p, ] = ee_ps[p, ] + long_ee_ps[r, ];
-	        ee_rd[p, trial] = long_ee_rd[r] - rd_theta[trial];
+	        ee_rd[p, trial] = long_ee_rd[r] - psi_k[trial];
 	    end;
+
+		ee_rdpool = j(n,1,
+						sum(psi_k)/K - psi_pool1 );
 		
-	    return (ee_rd || ee_ps);
+	    return (ee_rd || ee_rdpool || ee_ps);
 	finish eefx_snt;
 
     /* Column-sum wrapper, used for the bread (numerical derivative) */
@@ -353,17 +362,21 @@ proc iml;
         read all var {rd} into rd_vec;      /* K x 1 */
     close rd_out;
 
+	use rd_pool;
+		read all var {rd} into rdpool_vec;
+	close rd_pool;
+
     use pe_ps;
         read all var {Estimate} into alpha_vec;   /* (number of alpha params) x 1 */
     close pe_ps;
 
-	theta_hat = rd_vec // alpha_vec; /*  (K + p) x 1 column vector, matches theta ordering used in eefx_snt */
-	
+	theta_hat = rd_vec // rdpool_vec // alpha_vec; /*  (K + p) x 1 column vector, matches theta ordering used in eefx_snt */
+
 	/* Sandwich calcultaions */
     residuals = eefx_snt(theta_hat);       /* residuals at the point estimates */
     meat      = (residuals` * residuals) / n; /* meat matrix */
 
-    nparm = nrow(theta_hat); print(nparm);
+    nparm = nrow(theta_hat); 
     par   = nparm || . || .;
     call nlpfdd(func, deriv, na, "sumcolee", theta_hat, par);
     bread = -deriv / n;                       /* bread matrix */
