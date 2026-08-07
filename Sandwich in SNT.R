@@ -18,37 +18,6 @@ library(tidyverse)
 #
 ########################-
 
-# set.seed(7)
-# n <- 100000
-# 
-# # Simulate baseline emulated trial (k=1)
-# 
-# dat_k1 <- tibble(
-#   i = seq(1,n),
-#   S = 1,
-#   W = rbinom(n, 1, 0.2),
-#   A = rbinom(n, 1, 0.1 + 0.1*W),
-#   Y0 = rbinom(n, 1, 0.3 + 0.1*W - 0.1*0),
-#   Y1 = rbinom(n, 1, 0.3 + 0.1*W - 0.1*1),
-#   Y = A*Y1 + (1-A)*Y0)
-# 
-# # Simulate 2nd emulated trial (k=2)
-# 
-# n_2 <- n - sum(dat_k1$A)
-# 
-# dat_k2 <- dat_k1 |>
-#   filter(A == 0) |> # restrict to those assigned A=1 in first trial
-#   select(i,W) |>
-#   rename(priorW=W) |>
-#   mutate(S = 2, 
-#          W = rbinom(n_2, 1, 0.1 + 0.4*priorW),
-#          A = rbinom(n_2, 1, 0.1 + 0.1*W),
-#          Y0 = rbinom(n_2, 1, 0.3 + 0.1*W - 0.1*0),
-#          Y1 = rbinom(n_2, 1, 0.3 + 0.1*W - 0.1*1),
-#          Y = A*Y1 + (1-A)*Y0) |>
-#   select(-priorW)
-
-
 # Trial 1
 dat_k1 <- tribble(
   ~i,  ~W, ~A, ~Y,
@@ -132,7 +101,8 @@ df_wts <- df %>%
 
 ## Risk difference
 rd <- with(df_wts,
-           mean(ipw*Y*A - ipw*Y*(1 - A)))
+            mean(ipw*Y*A - ipw*Y*(1 - A)))
+
 
 ## Store point estimates
 ptests <- c(rd,

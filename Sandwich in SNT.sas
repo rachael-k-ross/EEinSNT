@@ -16,33 +16,6 @@
 #
 ##################################################-*/
 
-/*/* dat_k1: baseline emulated trial (k=1) */*/
-/*data dat_k1;*/
-/*    call streaminit(7);*/
-/*    do i = 1 to 100000;*/
-/*        S  = 1;*/
-/*        W  = rand('BERNOULLI', 0.2);*/
-/*        A  = rand('BERNOULLI', 0.1 + 0.1*W);*/
-/*        Y0 = rand('BERNOULLI', 0.3 + 0.1*W);*/
-/*        Y1 = rand('BERNOULLI', 0.3 + 0.1*W - 0.1);*/
-/*        Y  = A*Y1 + (1-A)*Y0;*/
-/*        output;*/
-/*    end;*/
-/*run;*/
-/**/
-/*/* dat_k2: 2nd emulated trial, nested among A=0 from k1 */*/
-/*data dat_k2;*/
-/*    call streaminit(8);*/
-/*    set dat_k1(where=(A=0) rename=(W=priorW));*/
-/*    S  = 2;*/
-/*    W  = rand('BERNOULLI', 0.1 + 0.4*priorW);*/
-/*    A  = rand('BERNOULLI', 0.1 + 0.1*W);*/
-/*    Y0 = rand('BERNOULLI', 0.3 + 0.1*W);*/
-/*    Y1 = rand('BERNOULLI', 0.3 + 0.1*W - 0.1);*/
-/*    Y  = A*Y1 + (1-A)*Y0;*/
-/*    drop priorW;*/
-/*run;*/
-;
 
 data dat_k1;
     input i W A Y;
