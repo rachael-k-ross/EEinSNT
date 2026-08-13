@@ -172,6 +172,7 @@ residuals <- eefx(ptests, dfmat) # residuals at the point estimates
 meat <- crossprod(residuals) / dfmat$nsize # meat matrix
 bread <- -numDeriv::jacobian(sumcolee, 
                              ptests, 
+                             method="simple",
                              eefx = eefx, 
                              dfmat = dfmat) / dfmat$nsize # bread matrix
 bread_inv <- solve(bread) # inverse of bread matrix
@@ -339,6 +340,7 @@ residuals <- eefx(ptests, dfmat) # residuals at the point estimates
 meat <- crossprod(residuals) / dfmat$nsize # meat matrix
 bread <- -numDeriv::jacobian(sumcolee, 
                              ptests, 
+                             method="simple", 
                              eefx = eefx, 
                              dfmat = dfmat) / dfmat$nsize # bread matrix
 bread_inv <- solve(bread) # inverse of bread matrix
@@ -474,6 +476,7 @@ residuals <- eefx(ptests, dfmat) # residuals at the point estimates
 meat <- crossprod(residuals) / dfmat$nsize # meat matrix
 bread <- -numDeriv::jacobian(sumcolee, 
                              ptests, 
+                             method="simple", 
                              eefx = eefx, 
                              dfmat = dfmat) / dfmat$nsize # bread matrix
 bread_inv <- solve(bread) # inverse of bread matrix
